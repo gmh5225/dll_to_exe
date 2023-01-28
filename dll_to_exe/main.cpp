@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
     }
     hndl.setDll();
     hndl.clearGuardFlag();
+    hndl.setDllCanNotMove();
     if (hndl.dllToExePatch()) {
         std::cout << "[OK] Converted successfuly."<< std::endl;
     } else {

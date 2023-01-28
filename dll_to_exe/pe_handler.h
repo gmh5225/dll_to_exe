@@ -27,7 +27,11 @@ public:
     bool isDll();
 
     bool setDll();
+    
     bool clearGuardFlag();
+    
+    bool setDllCanNotMove();
+
     bool dllToExePatch();
     bool savePe(const char *path);
 

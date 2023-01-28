@@ -38,6 +38,15 @@ bool PeHandler::clearGuardFlag()
     return true;
 }
 
+bool PeHandler::setDllCanNotMove()
+{
+    IMAGE_OPTIONAL_HEADER64* opt_hdr = static_cast<IMAGE_OPTIONAL_HEADER64*>(peconv::get_optional_hdr(pe_ptr, v_size));
+    if (!opt_hdr) return false;
+
+    opt_hdr->DllCharacteristics ^= IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
+    return true;
+}
+
 BYTE* PeHandler::getCavePtr(size_t neededSize)
 {
     BYTE *cave = peconv::find_padding_cave(pe_ptr, v_size, neededSize, IMAGE_SCN_MEM_EXECUTE);
@@ -62,7 +71,9 @@ bool PeHandler::dllToExePatch()
         0x6A, 0x01, // PUSH 0x1
         0x50, // PUSH EAX
         0xE8, 0xDE, 0xAD, 0xF0, 0x0D, //CALL [ep]
-        0xC3
+        0xF3, 0x90, //pause
+        0xEB, 0xFC, //jmp $-2
+        0xC3 //ret
     };
 
     BYTE back_stub64[] = {
@@ -72,7 +83,9 @@ bool PeHandler::dllToExePatch()
         0xBA, 0x01, 0x00, 0x00, 0x00, // mov edx, 1
         0x48, 0x8B, 0xDA, // mov rbx, rdx
         0x4D, 0x31, 0xC0, // xor r8, r8
-        0xE9, 0xDE, 0xAD, 0xF0, 0x0D, //jmp [ep]
+        0xE8, 0xDE, 0xAD, 0xF0, 0x0D, //call [ep]
+        0xF3, 0x90, //pause
+        0xEB, 0xFC, //jmp $-2
         0xC3 //ret
     };
 
@@ -82,7 +95,7 @@ bool PeHandler::dllToExePatch()
         back_stub = back_stub64;
         stub_size = sizeof(back_stub64);
     }
-    size_t call_offset = stub_size - 6;
+    size_t call_offset = stub_size - 10;
 
     BYTE* ptr = getCavePtr(stub_size);
     if (!ptr) {
